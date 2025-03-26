@@ -1,0 +1,54 @@
+{
+    "name": "TapObject",
+    "maps": [
+        {
+            "name": "TapObject",
+            "id": "26741fb6-1dae-40b8-a4ee-7a5bfd13040e",
+            "actions": [
+                {
+                    "name": "TouchPosition",
+                    "type": "Value",
+                    "id": "7b749023-3400-4714-a263-af0e5ceefc3d",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "Tap,Tap",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "TouchPress",
+                    "type": "Button",
+                    "id": "4577225b-c38d-4559-88bd-41701d861582",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d82dcda2-fc0b-4c47-bd14-e6d9ac17035e",
+                    "path": "<Touchscreen>/position",
+                    "interactions": "Tap",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TouchPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bdc7d741-3be1-4a2e-823b-cb71bbd927c7",
+                    "path": "<Touchscreen>/primaryTouch/tap",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TouchPress",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
