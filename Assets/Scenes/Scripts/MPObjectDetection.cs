@@ -36,11 +36,6 @@ namespace Model
             int pixelWidth = rt.width;
             int pixelHeight = rt.height;
 
-            Debug.Log(rt.width);
-            Debug.Log(rt.height);
-
-            Debug.Log(tapLoc);
-
             var detectionResults = graph.Detect(new Mediapipe.Image(TextureFormat.RGBA32.ToImageFormat(), rt));
 
             //Debug.Log(detectionResults);

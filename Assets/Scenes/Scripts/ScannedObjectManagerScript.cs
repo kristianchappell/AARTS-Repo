@@ -17,11 +17,11 @@ public class ScannedObjectManagerScript : MonoBehaviour
 
     public VideoPlayer videoPlayer;
 
-    public static string objectName;
+    //public static string objectName;
 
-    public void UpdateUI()
+    public void UpdateUI(string name)
     {
-        name = objectName;
+        //name = objectName;
         ObjectNameUI.GetComponent<TMP_Text>().text = CapitalizeFirstLetter(name);
 
         videoPlayer = VideoUI.GetComponent<VideoPlayer>();
@@ -50,6 +50,6 @@ public class ScannedObjectManagerScript : MonoBehaviour
 
     public void Update()
     {
-        UpdateUI();
+        //UpdateUI();
     }
 }

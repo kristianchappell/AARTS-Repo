@@ -1,0 +1,143 @@
+using TMPro;
+using Unity.XR.CoreUtils;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using UnityEngine.Video;
+using UnityEngine.XR.ARFoundation;
+
+
+public class PlayerPracticeManagerScript : MonoBehaviour
+{
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
+    public GameObject miniVideoCanvas;
+    public GameObject VideoUI;
+    public GameObject ObjectNameUI;
+
+    public GameObject oldVideoCanvas;
+    public GameObject oldObjectNameUI;
+    public GameObject practiceSetCanvas;
+
+    private VideoClip videoClip;
+    public VideoPlayer videoPlayer;
+
+    public Button exitButton;
+
+    public Button practiceButton;
+    private bool facingUser = false;
+
+    public GameObject homeButton;
+
+    public XROrigin origin;
+
+    [SerializeField] private ARSession arSession;
+    [SerializeField] private GameObject mainCamera;
+
+
+    void Start()
+    {
+        //arCameraManager.requestedFacingDirection = CameraFacingDirection.User;
+        exitButton.onClick.AddListener(() => exit());
+        practiceButton.onClick.AddListener(() => loadPractice());
+    }
+
+    void loadPractice()
+    {
+        //PlayerPracticeManagerScript.signName = aslObject.GetComponent<TMP_Text>().text;
+        flipCamera();
+
+        homeButton.SetActive(false);
+        practiceSetCanvas.SetActive(false);
+        oldVideoCanvas.SetActive(false);
+
+        miniVideoCanvas.SetActive(true);
+
+        UpdateMiniUI();
+
+    }
+
+    private void flipCamera()
+    {
+        //arSession.enabled = false;
+
+        if (facingUser)
+        {
+            origin.GetComponent<ARPlaneManager>().enabled = true;
+            origin.GetComponent<ARFaceManager>().enabled = false;
+
+            //mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection = CameraFacingDirection.World;
+            //Debug.Log(mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection);
+
+
+            facingUser = false;
+        }
+        else
+        {
+            origin.GetComponent<ARPlaneManager>().enabled = false;
+            origin.GetComponent<ARFaceManager>().enabled = true;
+
+            //mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection = CameraFacingDirection.User;
+            //Debug.Log(mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection);
+
+            facingUser = true;
+        }
+
+        //arSession.enabled = true;
+        arSession.Reset();
+        TouchManagerScript.facingUser = facingUser;
+
+    }
+
+    void exit()
+    {
+        practiceSetCanvas.SetActive(true);
+        oldVideoCanvas.SetActive(true);
+        homeButton.SetActive(true);
+
+        miniVideoCanvas.SetActive(false);
+        flipCamera();
+
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        //Debug.Log("Current Facing Direction: " + arCameraManager.requestedFacingDirection);
+    }
+
+    public void UpdateMiniUI()
+    {
+        string name = oldObjectNameUI.GetComponent<TMP_Text>().text;
+
+        if (name == null)
+        {
+            name = "dog";
+        }
+        //name = objectName;
+        ObjectNameUI.GetComponent<TMP_Text>().text = CapitalizeFirstLetter(name);
+
+        videoPlayer = VideoUI.GetComponent<VideoPlayer>();
+
+        string videoPath = "SigningVideos/dpan_source_videos/" + name;
+
+        videoClip = Resources.Load<VideoClip>(videoPath);
+
+        VideoUI.GetComponent<VideoPlayer>().clip = videoClip;
+
+        if (videoClip == null)
+        {
+            Debug.Log("Empty");
+        }
+
+        VideoUI.GetComponent<VideoPlayer>().Play();
+    }
+
+    private string CapitalizeFirstLetter(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return name;
+
+        return char.ToUpper(name[0]) + name.Substring(1);
+    }
+}
