@@ -29,7 +29,7 @@ namespace Model {
         
         private ConcurrentDictionary<long, VisionEngineState> stateBuffer;
 
-        public VisionEngine() {
+        public void Awake() {
             hands = new MPHands(Resources.Load<TextAsset>("hand_landmarker.task").bytes);
             recognizer = new LiteRTPopsignIsolatedSLR(Resources.Load<TextAsset>("563-double-lstm-120-cpu.tflite").bytes,
                 Resources.Load<TextAsset>("signsList").text.Split("\n").Select(line => line.Trim()).ToList());
