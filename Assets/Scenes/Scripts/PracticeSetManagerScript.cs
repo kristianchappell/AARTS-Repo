@@ -65,8 +65,13 @@ public class PracticeSetManagerScript : MonoBehaviour
         {
             if(i < filterAslList.Count)
             {
-                objectUI[i].GetComponentInChildren<TMP_Text>().text = (string)filterAslList[index + i];
+                string objectName = (string)filterAslList[index + i];
+                objectUI[i].GetComponentInChildren<TMP_Text>().text = objectName;
                 objectUI[i].SetActive(true);
+
+                GameObject correct = objectUI[i].transform.Find("Correct")?.gameObject;
+                correct.SetActive(PlayerPrefs.GetInt(objectName, 0) == 1);
+
             }
             else
             {

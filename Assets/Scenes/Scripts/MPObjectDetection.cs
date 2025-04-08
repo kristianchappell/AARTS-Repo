@@ -4,6 +4,10 @@ using Mediapipe.Tasks.Vision.ObjectDetector;
 using UnityEngine;
 using RunningMode = Mediapipe.Tasks.Vision.Core.RunningMode;
 using System.Collections;
+using System.Linq;
+using UnityEngine.Video;
+using System.Collections.Generic;
+using UnityEngine.Rendering;
 
 namespace Model
 {
@@ -48,23 +52,19 @@ namespace Model
             {
                 foreach (Mediapipe.Tasks.Components.Containers.Detection det in detectionResults.detections)
                 {
-                    
-                    foreach(Mediapipe.Tasks.Components.Containers.Category cat in det.categories)
+                    if (Intersect(tapLoc, det))
                     {
-                        Debug.Log(cat.categoryName);
-                        if (cat.score >= score) {
-                            score = cat.score;
-                            bestName = cat.categoryName;
-                            detObj = det;
+                        foreach (Mediapipe.Tasks.Components.Containers.Category cat in det.categories)
+                        {
+                            Debug.Log(cat.categoryName);
+                            if (cat.score >= score || isValid(cat.categoryName))
+                            {
+                                score = cat.score;
+                                bestName = cat.categoryName;
+                                detObj = det;
+                            }
                         }
                     }
-                    //if (Intersect(tapLoc, det))
-                    //{
-                    //    detections.Add(det.categories[0].categoryName);
-                    //    Debug.Log(det.categories[0].categoryName);
-                     
-                    //}
-                    
                 }
             }
             //Debug.Log(score);
@@ -73,8 +73,19 @@ namespace Model
             {
                 detections.Add(bestName);
             }
+            Debug.Log(bestName);
             return detections;
         }
+
+        private bool isValid(string catName)
+        {
+            VideoClip[] videoClips = Resources.LoadAll<VideoClip>("SigningVideos/dpan_source_videos");
+
+            List<string> aslList = videoClips.Select(clip => clip.name).ToList();
+
+            return aslList.Contains(catName);
+        }
     }
+
 }
 

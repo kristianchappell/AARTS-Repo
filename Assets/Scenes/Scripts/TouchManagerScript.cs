@@ -9,6 +9,7 @@ using UnityEngine.Video;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.UI;
 using Unity.XR.CoreUtils;
+using System.Linq;
 public class TouchManagerScript : MonoBehaviour
 {
 
@@ -33,6 +34,8 @@ public class TouchManagerScript : MonoBehaviour
     private VideoClip videoClip;
     public VideoPlayer videoPlayer;
 
+    [SerializeField] private GameObject totalComplete;
+
     public static bool facingUser = false;
 
     public GameObject background;
@@ -55,8 +58,10 @@ public class TouchManagerScript : MonoBehaviour
         {
             Debug.Log("Empty");
         }
-
-        VideoUI.GetComponent<VideoPlayer>().Play();
+        else
+        {
+            VideoUI.GetComponent<VideoPlayer>().Play();
+        }
     }
 
     private string CapitalizeFirstLetter(string name)
@@ -76,12 +81,18 @@ public class TouchManagerScript : MonoBehaviour
 
         homeButton.onClick.AddListener(openHome);
         videoButtonExit.onClick.AddListener(closeVideo);
+
+        int completed = PlayerPrefs.GetInt("totalCorrect");
+        int total = Resources.LoadAll<VideoClip>("SigningVideos/dpan_source_videos").Length;
+
+        totalComplete.GetComponent<TMP_Text>().text = "Words Learned: " + completed + "/" + total;
     }
 
     void openHome()
     {
         // Set the UI element's active property to true
         homeCanvas.SetActive(true);
+        videoCanvas.SetActive(false);
 
     }
 
@@ -134,7 +145,7 @@ public class TouchManagerScript : MonoBehaviour
 
             }
 
-            setBackground(image);
+            //setBackground(image);
         }
 
         //string path = Path.Combine(Application.persistentDataPath, "${frame}.png");

@@ -140,4 +140,11 @@ public class PlayerPracticeManagerScript : MonoBehaviour
 
         return char.ToUpper(name[0]) + name.Substring(1);
     }
+
+    void correct()
+    {
+        string correctWord = oldObjectNameUI.GetComponent<TMP_Text>().text;
+        PlayerPrefs.SetInt(correctWord, 1);
+        PlayerPrefs.SetInt("totalCorrect", PlayerPrefs.GetInt("totalCorrect"));
+    }
 }
