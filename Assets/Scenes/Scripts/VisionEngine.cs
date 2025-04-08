@@ -17,7 +17,7 @@ namespace Model {
     }
     public class VisionEngine : MonoBehaviour {
         public StreamCamera frontCamera;
-        public StreamCamera backCamera;
+        public ARCamera backCamera;
         public MPHands hands;
         public MPObjDet objDet;
         public MPSegmenter segmenter;
@@ -39,8 +39,7 @@ namespace Model {
             segmenter = new MPSegmenter(Resources.Load<TextAsset>("deeplab_v3.tflite").bytes);
 
             frontCamera = gameObject.AddComponent<StreamCamera>();
-            backCamera = gameObject.AddComponent<StreamCamera>();
-            backCamera.cameraSelector = CameraSelector.FirstBackCamera;
+            backCamera = gameObject.AddComponent<ARCamera>();
             PermissionManager.RequestCameraPermission();
             frontCamera.AddCallback("HandLandmarker", input => {
                 hands.Run(input);
@@ -105,6 +104,21 @@ namespace Model {
                     stateBuffer.Remove(timestamp, out var texture);
                 }
             }
+        }
+
+        public void StopAllCameras() {
+            backCamera.Pause();
+            frontCamera.Pause();
+        }
+
+        public void StartBackCamera() {
+            frontCamera.Pause();
+            backCamera.Poll();
+        }
+
+        public void StartFrontCamera() {
+            backCamera.Pause();
+            frontCamera.Poll();
         }
     }
 }
