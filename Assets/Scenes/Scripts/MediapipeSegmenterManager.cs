@@ -5,17 +5,35 @@ using UnityEngine;
 using RunningMode = Mediapipe.Tasks.Vision.Core.RunningMode;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using SLRGTk.Common;
+using SLRGTk.Model;
+using Unity.Collections;
 
 
 namespace Model
 {
 
-    public class MediapipeObjectSegmenterModelManager
+    public class MPSegmenterOutput {
+        public NativeArray<byte> OriginalImage { get; }
+        public int Width { get; }
+        public int Height { get; }
+        public ImageSegmenterResult Result { get; }
+
+
+        // constructor
+        public MPSegmenterOutput(NativeArray<byte> originalImage, ImageSegmenterResult result, int width, int height) {
+            OriginalImage = originalImage;
+            Result = result;
+            Width = width;
+            Height = height;
+        }
+    }
+    public class MPSegmenter
     {
         private readonly ImageSegmenter graph;
 
-        private readonly Dictionary<string, Action<ImageMPResultWrapper<ImageSegmenterResult>>> callbacks = new();
-        private readonly ConcurrentDictionary<long, Texture2D> outputInputLookup = new();
+        private readonly Dictionary<string, Action<MPSegmenterOutput>> callbacks = new();
+        private readonly ConcurrentDictionary<long, MPVisionInput> outputInputLookup = new();
         private readonly RunningMode runningMode;
 
         private static class Config
@@ -23,7 +41,7 @@ namespace Model
             public static readonly float CATEGORY_CONFIDENCE = 0.3f;
             public static readonly bool OUTPUT_CATEGORY_MASK = true;
         }
-        public MediapipeObjectSegmenterModelManager(byte[] modelAssetBuffer, Mediapipe.Tasks.Vision.Core.RunningMode runningMode)
+        public MPSegmenter(byte[] modelAssetBuffer, Mediapipe.Tasks.Vision.Core.RunningMode runningMode = Mediapipe.Tasks.Vision.Core.RunningMode.LIVE_STREAM)
         {
             this.runningMode = runningMode;
             if (runningMode != Mediapipe.Tasks.Vision.Core.RunningMode.LIVE_STREAM)
@@ -48,9 +66,12 @@ namespace Model
                         if (!outputInputLookup.ContainsKey(timestampMs)) return;
                         foreach (var cb in callbacks.Values)
                         {
-                            cb(new ImageMPResultWrapper<ImageSegmenterResult>(
+                            var matchedImg = outputInputLookup.GetValueOrDefault(timestampMs);
+                            cb(new MPSegmenterOutput(
+                                matchedImg.Image,
                                 i,
-                                outputInputLookup.GetValueOrDefault(timestampMs)
+                                matchedImg.Width,
+                                matchedImg.Height
                             ));
                         }
                         outputInputLookup.Remove(timestampMs, out var _);
@@ -59,7 +80,6 @@ namespace Model
                             if (timestamp < timestampMs)
                             {
                                 outputInputLookup.Remove(timestamp, out var texture);
-                                CustomTextureManager.ScheduleDeletion(texture);
                             }
                         }
                     }
@@ -68,29 +88,29 @@ namespace Model
         }
         private int imageCounter = 0; // Counter for image filenames
         
-        public void Single(Texture2D image, long timestamp)
+        public void Run(MPVisionInput input)
         {
-            Image img = new Image(image.format.ToImageFormat(), image);
+            var img = new Image(TextureFormat.RGBA32.ToImageFormat(), input.Width, input.Height, TextureFormat.RGBA32.ToImageFormat().NumberOfChannels() * input.Width, input.Image);
             switch (runningMode)
             {
                 case Mediapipe.Tasks.Vision.Core.RunningMode.LIVE_STREAM:
-                    outputInputLookup[timestamp] = image;
-                    graph.SegmentAsync(img, timestamp);
+                    outputInputLookup[input.Timestamp] = input;
+                    graph.SegmentAsync(img, input.Timestamp);
                     break;
                 case Mediapipe.Tasks.Vision.Core.RunningMode.IMAGE:
                     var result = graph.Segment(img);
                     break;
                 case Mediapipe.Tasks.Vision.Core.RunningMode.VIDEO:
-                    var videoResult = graph.SegmentForVideo(img, timestamp);
+                    var videoResult = graph.SegmentForVideo(img, input.Timestamp);
                     foreach (var cb in callbacks.Values)
                     {
-                        cb(new ImageMPResultWrapper<ImageSegmenterResult>(videoResult, image));
+                        cb(new MPSegmenterOutput(input.Image, videoResult, input.Width, input.Height));
                     }
                     break;
 
             }
         }
-        public void AddCallback(string name, Action<ImageMPResultWrapper<ImageSegmenterResult>> callback)
+        public void AddCallback(string name, Action<MPSegmenterOutput> callback)
         {
             callbacks[name] = callback;        
         }

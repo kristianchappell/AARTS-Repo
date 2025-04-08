@@ -6,17 +6,35 @@ using RunningMode = Mediapipe.Tasks.Vision.Core.RunningMode;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Mediapipe.Tasks.Components.Containers;
+using SLRGTk.Common;
+using SLRGTk.Model;
+using Unity.Collections;
 
 
 namespace Model
 {
 
-    public class MediapipeObjectDetectorModelManager
+    public class MPObjDetOutput {
+        public NativeArray<byte> OriginalImage { get; }
+        public int Width { get; }
+        public int Height { get; }
+        public DetectionResult Result { get; }
+
+
+        // constructor
+        public MPObjDetOutput(NativeArray<byte> originalImage, DetectionResult result, int width, int height) {
+            OriginalImage = originalImage;
+            Result = result;
+            Width = width;
+            Height = height;
+        }
+    }
+    public class MPObjDet
     {
         private readonly ObjectDetector graph;
 
-        private readonly Dictionary<string, Action<ImageMPResultWrapper<DetectionResult>>> callbacks = new();
-        private readonly ConcurrentDictionary<long, Texture2D> outputInputLookup = new();
+        private readonly Dictionary<string, Action<MPObjDetOutput>> callbacks = new();
+        private readonly ConcurrentDictionary<long, MPVisionInput> outputInputLookup = new();
         private readonly RunningMode runningMode;
 
         private static class Config
@@ -24,7 +42,7 @@ namespace Model
             public static readonly int MAX_RESULTS = 6;
             public static readonly float MIN_SCORE_THRESHOLD = 0.1f;
         }
-        public MediapipeObjectDetectorModelManager(byte[] modelAssetBuffer, Mediapipe.Tasks.Vision.Core.RunningMode runningMode)
+        public MPObjDet(byte[] modelAssetBuffer, Mediapipe.Tasks.Vision.Core.RunningMode runningMode = Mediapipe.Tasks.Vision.Core.RunningMode.LIVE_STREAM)
         {
             this.runningMode = runningMode;
             if (runningMode != Mediapipe.Tasks.Vision.Core.RunningMode.LIVE_STREAM)
@@ -50,11 +68,13 @@ namespace Model
                     resultCallback: (i, _, timestampMs) =>
                     {
                         if (!outputInputLookup.ContainsKey(timestampMs)) return;
-                        foreach (var cb in callbacks.Values)
-                        {
-                            cb(new ImageMPResultWrapper<DetectionResult>(
+                        foreach (var cb in callbacks.Values) {
+                            var matchedImg = outputInputLookup.GetValueOrDefault(timestampMs);
+                            cb(new MPObjDetOutput(
+                                matchedImg.Image,
                                 i,
-                                outputInputLookup.GetValueOrDefault(timestampMs)
+                                matchedImg.Width,
+                                matchedImg.Height
                             ));
                         }
                         outputInputLookup.Remove(timestampMs, out var _);
@@ -63,7 +83,6 @@ namespace Model
                             if (timestamp < timestampMs)
                             {
                                 outputInputLookup.Remove(timestamp, out var texture);
-                                CustomTextureManager.ScheduleDeletion(texture);
                             }
                         }
                     }
@@ -72,29 +91,29 @@ namespace Model
         }
         private int imageCounter = 0; // Counter for image filenames
 
-        public void Single(Texture2D image, long timestamp)
+        public void Run(MPVisionInput input)
         {
-            Image img = new Image(image.format.ToImageFormat(), image);
+            var img = new Image(TextureFormat.RGBA32.ToImageFormat(), input.Width, input.Height, TextureFormat.RGBA32.ToImageFormat().NumberOfChannels() * input.Width, input.Image);
             switch (runningMode)
             {
                 case Mediapipe.Tasks.Vision.Core.RunningMode.LIVE_STREAM:
-                    outputInputLookup[timestamp] = image;
-                    graph.DetectAsync(img, timestamp);
+                    outputInputLookup[input.Timestamp] = input;
+                    graph.DetectAsync(img, input.Timestamp);
                     break;
                 case Mediapipe.Tasks.Vision.Core.RunningMode.IMAGE:
                     var result = graph.Detect(img);
                     break;
                 case Mediapipe.Tasks.Vision.Core.RunningMode.VIDEO:
-                    var videoResult = graph.DetectForVideo(img, timestamp);
+                    var videoResult = graph.DetectForVideo(img, input.Timestamp);
                     foreach (var cb in callbacks.Values)
                     {
-                        cb(new ImageMPResultWrapper<DetectionResult>(videoResult, image));
+                        cb(new MPObjDetOutput(input.Image, videoResult, input.Width, input.Height));
                     }
                     break;
 
             }
         }
-        public void AddCallback(string name, Action<ImageMPResultWrapper<DetectionResult>> callback)
+        public void AddCallback(string name, Action<MPObjDetOutput> callback)
         {
             callbacks[name] = callback;
         }
