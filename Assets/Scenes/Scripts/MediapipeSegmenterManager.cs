@@ -17,15 +17,18 @@ namespace Model
         public NativeArray<byte> OriginalImage { get; }
         public int Width { get; }
         public int Height { get; }
+        
+        public long Timestamp { get; }
         public ImageSegmenterResult Result { get; }
 
 
         // constructor
-        public MPSegmenterOutput(NativeArray<byte> originalImage, ImageSegmenterResult result, int width, int height) {
+        public MPSegmenterOutput(NativeArray<byte> originalImage, ImageSegmenterResult result, int width, int height, long timestamp) {
             OriginalImage = originalImage;
             Result = result;
             Width = width;
             Height = height;
+            Timestamp = timestamp;
         }
     }
     public class MPSegmenter
@@ -71,7 +74,8 @@ namespace Model
                                 matchedImg.Image,
                                 i,
                                 matchedImg.Width,
-                                matchedImg.Height
+                                matchedImg.Height,
+                                timestampMs
                             ));
                         }
                         outputInputLookup.Remove(timestampMs, out var _);
@@ -104,7 +108,7 @@ namespace Model
                     var videoResult = graph.SegmentForVideo(img, input.Timestamp);
                     foreach (var cb in callbacks.Values)
                     {
-                        cb(new MPSegmenterOutput(input.Image, videoResult, input.Width, input.Height));
+                        cb(new MPSegmenterOutput(input.Image, videoResult, input.Width, input.Height, input.Timestamp));
                     }
                     break;
 

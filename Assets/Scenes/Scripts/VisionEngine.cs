@@ -12,12 +12,12 @@ using UnityEngine;
 namespace Model {
 
     public class VisionEngineState {
-        public HandLandmarkerResult? Landmarks = null;
         public DetectionResult? Detection = null;
         public ImageSegmenterResult? Segmentation = null;
     }
     public class VisionEngine : MonoBehaviour {
-        public StreamCamera camera;
+        public StreamCamera frontCamera;
+        public StreamCamera backCamera;
         public MPHands hands;
         public MPObjDet objDet;
         public MPSegmenter segmenter;
@@ -38,26 +38,28 @@ namespace Model {
             objDet = new MPObjDet(Resources.Load<TextAsset>("efficientdet_lite0_float32.tflite").bytes);
             segmenter = new MPSegmenter(Resources.Load<TextAsset>("deeplab_v3.tflite").bytes);
 
-            camera = gameObject.AddComponent<StreamCamera>();
+            frontCamera = gameObject.AddComponent<StreamCamera>();
+            backCamera = gameObject.AddComponent<StreamCamera>();
+            backCamera.cameraSelector = CameraSelector.FirstBackCamera;
             PermissionManager.RequestCameraPermission();
-            camera.AddCallback("HandLandmarker", input => {
+            frontCamera.AddCallback("HandLandmarker", input => {
                 hands.Run(input);
             });
-            camera.AddCallback("ObjectDetector", input => {
+            backCamera.AddCallback("ObjectDetector", input => {
                 objDet.Run(input);
             });
-            camera.AddCallback("ImageSegmenter", input => {
+            backCamera.AddCallback("ImageSegmenter", input => {
                 segmenter.Run(input);
             });
+            objDet.AddCallback("VisionEngine State", AddState);
+            segmenter.AddCallback("VisionEngine State", AddState);
             hands.AddCallback("BufferFiller", output => {
                 if (output.Result.handLandmarks != null && output.Result.handLandmarks.Count > 0) {
                     // TODO: clear the buffer if there are too many blanks in succession
                     buffer.AddElement(output.Result);
                 }
             });
-            hands.AddCallback("StateUpdater", output => {
-                
-            });
+            
             buffer.AddCallback("BufferPrinter", result => {
                 Debug.Log("Buffer Triggered at: " + result.Count  + " Elements");
             });
@@ -75,27 +77,21 @@ namespace Model {
                 stateBuffer.TryAdd(timestamp, new VisionEngineState());
             }
         }
-
-        public void AddState(long timestamp, HandLandmarkerResult landmarks) {
-            CheckOrAddState(timestamp);
-            stateBuffer[timestamp].Landmarks = landmarks;
-            CheckUpdate(timestamp);
-        }
-        public void AddState(long timestamp, DetectionResult detection) {
-            CheckOrAddState(timestamp);
-            stateBuffer[timestamp].Detection = detection;
-            CheckUpdate(timestamp);
+        
+        public void AddState(MPObjDetOutput output) {
+            CheckOrAddState(output.Timestamp);
+            stateBuffer[output.Timestamp].Detection = output.Result;
+            CheckUpdate(output.Timestamp);
             
         }
-        public void AddState(long timestamp, ImageSegmenterResult segmentation) {
-            CheckOrAddState(timestamp);
-            stateBuffer[timestamp].Segmentation = segmentation;
-            CheckUpdate(timestamp);
+        public void AddState(MPSegmenterOutput output) {
+            CheckOrAddState(output.Timestamp);
+            stateBuffer[output.Timestamp].Segmentation = output.Result;
+            CheckUpdate(output.Timestamp);
         }
 
         public void CheckUpdate(long timestamp) {
-            if (stateBuffer[timestamp].Landmarks != null &&
-                stateBuffer[timestamp].Detection != null &&
+            if (stateBuffer[timestamp].Detection != null &&
                 stateBuffer[timestamp].Segmentation != null) {
                 if (timestamp > currentTimestamp) {
                     currentTimestamp = timestamp;

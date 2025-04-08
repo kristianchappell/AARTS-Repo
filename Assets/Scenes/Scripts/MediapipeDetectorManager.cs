@@ -18,11 +18,13 @@ namespace Model
         public NativeArray<byte> OriginalImage { get; }
         public int Width { get; }
         public int Height { get; }
+        
+        public long Timestamp { get; }
         public DetectionResult Result { get; }
 
 
         // constructor
-        public MPObjDetOutput(NativeArray<byte> originalImage, DetectionResult result, int width, int height) {
+        public MPObjDetOutput(NativeArray<byte> originalImage, DetectionResult result, int width, int height, long timestamp) {
             OriginalImage = originalImage;
             Result = result;
             Width = width;
@@ -74,7 +76,8 @@ namespace Model
                                 matchedImg.Image,
                                 i,
                                 matchedImg.Width,
-                                matchedImg.Height
+                                matchedImg.Height,
+                                timestampMs
                             ));
                         }
                         outputInputLookup.Remove(timestampMs, out var _);
@@ -107,7 +110,7 @@ namespace Model
                     var videoResult = graph.DetectForVideo(img, input.Timestamp);
                     foreach (var cb in callbacks.Values)
                     {
-                        cb(new MPObjDetOutput(input.Image, videoResult, input.Width, input.Height));
+                        cb(new MPObjDetOutput(input.Image, videoResult, input.Width, input.Height, input.Timestamp));
                     }
                     break;
 
