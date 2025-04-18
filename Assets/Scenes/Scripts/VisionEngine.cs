@@ -25,6 +25,7 @@ namespace Model {
         public LiteRTPopsignIsolatedSLR recognizer;
 
         private long currentTimestamp;
+<<<<<<< HEAD
         public VisionEngineState currentState;
         public ClassPredictions? handResult = null;
         
@@ -37,16 +38,30 @@ namespace Model {
 
             Debug.Log(WebCamTexture.devices[1]);
 
+=======
+        private VisionEngineState currentState;
+        
+        private ConcurrentDictionary<long, VisionEngineState> stateBuffer;
+
+        public void Awake() {
+>>>>>>> f3542aaab5dc083c04a427ce82051a1c8d53b7ec
             hands = new MPHands(Resources.Load<TextAsset>("hand_landmarker.task").bytes);
             recognizer = new LiteRTPopsignIsolatedSLR(Resources.Load<TextAsset>("563-double-lstm-120-cpu.tflite").bytes,
                 Resources.Load<TextAsset>("signsList").text.Split("\n").Select(line => line.Trim()).ToList());
             
             
+<<<<<<< HEAD
             objDet = new MPObjDet(detebytes.bytes);
             segmenter = new MPSegmenter(segbytes.bytes);
 
             frontCamera = gameObject.AddComponent<StreamCamera>();
             frontCamera.Pause();
+=======
+            objDet = new MPObjDet(Resources.Load<TextAsset>("efficientdet_lite0_float32.tflite").bytes);
+            segmenter = new MPSegmenter(Resources.Load<TextAsset>("deeplab_v3.tflite").bytes);
+
+            frontCamera = gameObject.AddComponent<StreamCamera>();
+>>>>>>> f3542aaab5dc083c04a427ce82051a1c8d53b7ec
             backCamera = gameObject.AddComponent<ARCamera>();
             PermissionManager.RequestCameraPermission();
             frontCamera.AddCallback("HandLandmarker", input => {
@@ -58,7 +73,10 @@ namespace Model {
             backCamera.AddCallback("ImageSegmenter", input => {
                 segmenter.Run(input);
             });
+<<<<<<< HEAD
             backCamera.AddCallback("Debug", _ => throw new System.Exception("IDK"));
+=======
+>>>>>>> f3542aaab5dc083c04a427ce82051a1c8d53b7ec
             objDet.AddCallback("VisionEngine State", AddState);
             segmenter.AddCallback("VisionEngine State", AddState);
             hands.AddCallback("BufferFiller", output => {
@@ -77,8 +95,11 @@ namespace Model {
             });
             recognizer.AddCallback("Recoginzer Result", result => {
                 Debug.Log("Recoginzer Result: " + result);
+<<<<<<< HEAD
                 
                 handResult = result;
+=======
+>>>>>>> f3542aaab5dc083c04a427ce82051a1c8d53b7ec
             });
         }
 
