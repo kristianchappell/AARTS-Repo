@@ -1,3 +1,4 @@
+using Model;
 using TMPro;
 using Unity.XR.CoreUtils;
 using UnityEngine;
@@ -5,7 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.Video;
 using UnityEngine.XR.ARFoundation;
-
+using System.Collections.Generic;
 
 public class PlayerPracticeManagerScript : MonoBehaviour
 {
@@ -31,8 +32,10 @@ public class PlayerPracticeManagerScript : MonoBehaviour
 
     public XROrigin origin;
 
-    [SerializeField] private ARSession arSession;
-    [SerializeField] private GameObject mainCamera;
+    //[SerializeField] private ARSession arSession;
+    //[SerializeField] private GameObject mainCamera;
+
+    [SerializeField] private VisionEngine visionEngine;
 
 
     void Start()
@@ -45,7 +48,9 @@ public class PlayerPracticeManagerScript : MonoBehaviour
     void loadPractice()
     {
         //PlayerPracticeManagerScript.signName = aslObject.GetComponent<TMP_Text>().text;
-        flipCamera();
+        visionEngine.StopAllCameras();
+        visionEngine.StartFrontCamera();
+        //flipCamera();
 
         homeButton.SetActive(false);
         practiceSetCanvas.SetActive(false);
@@ -57,37 +62,37 @@ public class PlayerPracticeManagerScript : MonoBehaviour
 
     }
 
-    private void flipCamera()
-    {
-        //arSession.enabled = false;
+    //private void flipCamera()
+    //{
+    //    //arSession.enabled = false;
 
-        if (facingUser)
-        {
-            origin.GetComponent<ARPlaneManager>().enabled = true;
-            origin.GetComponent<ARFaceManager>().enabled = false;
+    //    if (facingUser)
+    //    {
+    //        origin.GetComponent<ARPlaneManager>().enabled = true;
+    //        origin.GetComponent<ARFaceManager>().enabled = false;
 
-            //mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection = CameraFacingDirection.World;
-            //Debug.Log(mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection);
+    //        //mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection = CameraFacingDirection.World;
+    //        //Debug.Log(mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection);
 
 
-            facingUser = false;
-        }
-        else
-        {
-            origin.GetComponent<ARPlaneManager>().enabled = false;
-            origin.GetComponent<ARFaceManager>().enabled = true;
+    //        facingUser = false;
+    //    }
+    //    else
+    //    {
+    //        origin.GetComponent<ARPlaneManager>().enabled = false;
+    //        origin.GetComponent<ARFaceManager>().enabled = true;
 
-            //mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection = CameraFacingDirection.User;
-            //Debug.Log(mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection);
+    //        //mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection = CameraFacingDirection.User;
+    //        //Debug.Log(mainCamera.GetComponent<ARCameraManager>().requestedFacingDirection);
 
-            facingUser = true;
-        }
+    //        facingUser = true;
+    //    }
 
-        //arSession.enabled = true;
-        arSession.Reset();
-        TouchManagerScript.facingUser = facingUser;
+    //    //arSession.enabled = true;
+    //    arSession.Reset();
+    //    TouchManagerScript.facingUser = facingUser;
 
-    }
+    //}
 
     void exit()
     {
@@ -96,14 +101,22 @@ public class PlayerPracticeManagerScript : MonoBehaviour
         homeButton.SetActive(true);
 
         miniVideoCanvas.SetActive(false);
-        flipCamera();
+        visionEngine.StopAllCameras();
+        visionEngine.StartBackCamera();
 
     }
 
     // Update is called once per frame
     void Update()
     {
-        //Debug.Log("Current Facing Direction: " + arCameraManager.requestedFacingDirection);
+        if (visionEngine.handResult != null)
+        {
+            List<string> classes = visionEngine.handResult.Classes;
+            if (classes[0] == oldObjectNameUI.GetComponent<TMP_Text>().text)
+            {
+                correct();
+            }
+        }
     }
 
     public void UpdateMiniUI()
@@ -146,5 +159,8 @@ public class PlayerPracticeManagerScript : MonoBehaviour
         string correctWord = oldObjectNameUI.GetComponent<TMP_Text>().text;
         PlayerPrefs.SetInt(correctWord, 1);
         PlayerPrefs.SetInt("totalCorrect", PlayerPrefs.GetInt("totalCorrect"));
+
+        exit();
+        
     }
 }

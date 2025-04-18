@@ -52,12 +52,12 @@ namespace Model
             {
                 foreach (Mediapipe.Tasks.Components.Containers.Detection det in detectionResults.detections)
                 {
-                    if (Intersect(tapLoc, det))
+                    if (true)   //Intersect(tapLoc, det))
                     {
                         foreach (Mediapipe.Tasks.Components.Containers.Category cat in det.categories)
                         {
                             Debug.Log(cat.categoryName);
-                            if (cat.score >= score || isValid(cat.categoryName))
+                            if (cat.score >= score && isValid(cat.categoryName))
                             {
                                 score = cat.score;
                                 bestName = cat.categoryName;

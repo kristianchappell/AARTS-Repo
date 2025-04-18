@@ -25,20 +25,28 @@ namespace Model {
         public LiteRTPopsignIsolatedSLR recognizer;
 
         private long currentTimestamp;
-        private VisionEngineState currentState;
+        public VisionEngineState currentState;
+        public ClassPredictions? handResult = null;
         
         private ConcurrentDictionary<long, VisionEngineState> stateBuffer;
 
+        [SerializeField] TextAsset detebytes;
+        [SerializeField] TextAsset segbytes;
+
         public void Awake() {
+
+            Debug.Log(WebCamTexture.devices[1]);
+
             hands = new MPHands(Resources.Load<TextAsset>("hand_landmarker.task").bytes);
             recognizer = new LiteRTPopsignIsolatedSLR(Resources.Load<TextAsset>("563-double-lstm-120-cpu.tflite").bytes,
                 Resources.Load<TextAsset>("signsList").text.Split("\n").Select(line => line.Trim()).ToList());
             
             
-            objDet = new MPObjDet(Resources.Load<TextAsset>("efficientdet_lite0_float32.tflite").bytes);
-            segmenter = new MPSegmenter(Resources.Load<TextAsset>("deeplab_v3.tflite").bytes);
+            objDet = new MPObjDet(detebytes.bytes);
+            segmenter = new MPSegmenter(segbytes.bytes);
 
             frontCamera = gameObject.AddComponent<StreamCamera>();
+            frontCamera.Pause();
             backCamera = gameObject.AddComponent<ARCamera>();
             PermissionManager.RequestCameraPermission();
             frontCamera.AddCallback("HandLandmarker", input => {
@@ -50,6 +58,7 @@ namespace Model {
             backCamera.AddCallback("ImageSegmenter", input => {
                 segmenter.Run(input);
             });
+            backCamera.AddCallback("Debug", _ => throw new System.Exception("IDK"));
             objDet.AddCallback("VisionEngine State", AddState);
             segmenter.AddCallback("VisionEngine State", AddState);
             hands.AddCallback("BufferFiller", output => {
@@ -68,6 +77,8 @@ namespace Model {
             });
             recognizer.AddCallback("Recoginzer Result", result => {
                 Debug.Log("Recoginzer Result: " + result);
+                
+                handResult = result;
             });
         }
 

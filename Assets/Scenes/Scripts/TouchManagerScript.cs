@@ -10,6 +10,8 @@ using UnityEngine.XR.ARFoundation;
 using UnityEngine.UI;
 using Unity.XR.CoreUtils;
 using System.Linq;
+using Mediapipe.Tasks.Components.Containers;
+using System.Collections.Generic;
 public class TouchManagerScript : MonoBehaviour
 {
 
@@ -39,6 +41,8 @@ public class TouchManagerScript : MonoBehaviour
     public static bool facingUser = false;
 
     public GameObject background;
+
+    [SerializeField] private VisionEngine visionEngine;
 
 
     public void UpdateUI(string name)
@@ -74,10 +78,15 @@ public class TouchManagerScript : MonoBehaviour
 
     private void Awake()
     {
+        visionEngine.StopAllCameras();
+
+        visionEngine.StartBackCamera();
+        //Debug.Log($"After back: {visionEngine.backCamera.polling}");
+
         playerInput = GetComponent<PlayerInput>();
         touchPressAction = playerInput.actions["TouchPress"];
         touchPositionAction = playerInput.actions["TouchPosition"];
-        model = new Model.MPObjectDetection(detectionModel);
+        //model = new Model.MPObjectDetection(detectionModel);
 
         homeButton.onClick.AddListener(openHome);
         videoButtonExit.onClick.AddListener(closeVideo);
@@ -129,10 +138,30 @@ public class TouchManagerScript : MonoBehaviour
     {
         Vector2 position = touchPositionAction.ReadValue<Vector2>();
 
-        if (ScanActive(position)) {
+        Debug.Log(visionEngine.currentState);
+        
+        if (visionEngine.currentState == null)
+        {
+            throw new System.Exception("Missing CurrentState");
+        }
+      
+
+        if (ScanActive(position) && visionEngine.currentState != null) {
+
 
             Texture2D image = TakeScreenshot();
-            ArrayList classes = model.ProcessScreen(image, position);
+            //ArrayList classes = model.ProcessScreen(image, position);
+            DetectionResult detResults = (DetectionResult) visionEngine.currentState.Detection;
+
+            Debug.Log(detResults);
+            if (detResults.detections == null)
+            {
+                throw new System.Exception($"Detection Results: {detResults}");
+            }
+            
+
+            List<Detection> det = detResults.detections;
+            List<string> classes = det[0].categories.Select(cat => cat.displayName).ToList();
 
 
             //Object Recong model
@@ -147,54 +176,13 @@ public class TouchManagerScript : MonoBehaviour
 
             //setBackground(image);
         }
-
-        //string path = Path.Combine(Application.persistentDataPath, "${frame}.png");
-        //Debug.Log(path);
-
-        //File.WriteAllBytes(path, image.EncodeToPNG());
-
-        //string filename = "Assets/Scenes/Sprites/car.png";
-        //Texture2D LoadPNG(string fileName)
-        //{
-        //    string path = fileName;
-
-        //    if (!File.Exists(path))
-        //    {
-        //        Debug.LogError("File not found at: " + path);
-        //        return null;
-        //    }
-
-        //    byte[] fileData = File.ReadAllBytes(path);
-        //    Texture2D texture = new Texture2D(2, 2); // Dummy size, LoadImage will resize it
-        //    if (texture.LoadImage(fileData)) // Load PNG data
-        //    {
-        //        return texture;
-        //    }
-
-        //    Debug.LogError("Failed to load texture.");
-        //    return null;
-        //}
-
-        // LoadPNG(filename); // TakeScreenshot();
-
-        //var rawData = System.IO.File.ReadAllBytes(filename);
-        //if (!(image.LoadImage(rawData))) {
-        //    Debug.Log(image.LoadImage(rawData));   
-        //}
-
-
-        //string path = Path.Combine(Application.persistentDataPath, "${frame}.png");
-        //// Debug.Log(path);
-        //++frame;
-
-        //File.WriteAllBytes(path, image.EncodeToPNG());
     }
 
     private void setBackground(Texture2D image)
     {
         Image screenShot = background.GetComponent<Image>();
 
-        screenShot.sprite = Sprite.Create(image, new Rect(0, 0, image.width, image.height), new Vector2(0.5f, 0.5f));
+        screenShot.sprite = Sprite.Create(image, new UnityEngine.Rect(0, 0, image.width, image.height), new Vector2(0.5f, 0.5f));
         background.SetActive(true);
     }
 
@@ -215,7 +203,7 @@ public class TouchManagerScript : MonoBehaviour
         camera.Render();
 
         Texture2D image = new Texture2D(width, height);
-        image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        image.ReadPixels(new UnityEngine.Rect(0, 0, width, height), 0, 0);
         image.Apply();
 
         camera.targetTexture = null;
